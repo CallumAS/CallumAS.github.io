@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta name='viewport' content='width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no'>
+    <link rel='stylesheet' href='https://cdn.jsdelivr.net/npm/ol@v7.3.0/ol.css' />
+    <script src='https://cdn.jsdelivr.net/npm/ol@v7.3.0/dist/ol.js'></script>
+    <style>
+        html,
+        body {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+        }
+
+        #map {
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            width: 100%;
+            height: 100%;
+        }
+    </style>
+</head>
+
+<body>
+    <div id='map'></div>
+
+    <script>
+        var map, vectorSource, vectorLayer, currentPositionFeature;
+
+        function initMap() {
+            vectorSource = new ol.source.Vector();
+            vectorLayer = new ol.layer.Vector({
+                source: vectorSource,
+                style: new ol.style.Style({
+                    stroke: new ol.style.Stroke({
+                        color: '#009dff',
+                        width: 4
+                    })
+                })
+            });
+
+            map = new ol.Map({
+                target: 'map',
+                layers: [
+                    new ol.layer.Tile({
+                        source: new ol.source.OSM()
+                    }),
+                    vectorLayer
+                ],
+                view: new ol.View({
+                    center: ol.proj.fromLonLat([0, 0]),
+                    zoom: 5
+                }),
+                controls: []
+            });
+
+            currentPositionFeature = new ol.Feature();
+            currentPositionFeature.setStyle(new ol.style.Style({
+                image: new ol.style.Circle({
+                    radius: 8,
+                    fill: new ol.style.Fill({
+                        color: '#009dff'
+                    }),
+                    stroke: new ol.style.Stroke({
+                        color: '#ffffff',
+                        width: 3
+                    })
+                })
+            }));
+
+            var positionLayer = new ol.layer.Vector({
+                source: new ol.source.Vector({
+                    features: [currentPositionFeature]
+                })
+            });
+            map.addLayer(positionLayer);
+        }
+
+        function updateRoute(points) {
+            vectorSource.clear();
+
+            if (points && points.length >= 2) {
+                var coordinates = points.map(point => ol.proj.fromLonLat(point));
+                var lineString = new ol.geom.LineString(coordinates);
+
+                var feature = new ol.Feature({
+                    geometry: lineString
+                });
+
+                vectorSource.addFeature(feature);
+
+                if (points.length === 2) {
+                    map.getView().fit(lineString, {
+                        padding: [50, 50, 50, 50],
+                        duration: 1000
+                    });
+                }
+            }
+        }
+
+        function updatePosition(lat, lng, zoom) {
+            var position = ol.proj.fromLonLat([lng, lat]);
+            currentPositionFeature.setGeometry(new ol.geom.Point(position));
+
+            map.getView().animate({
+                center: position,
+                zoom: zoom,
+                duration: 1000
+            });
+        }
+
+        initMap();
+    </script>
+</body>
+
+</html>
